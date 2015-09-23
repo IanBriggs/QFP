@@ -358,7 +358,7 @@ public:
     typedef unsigned __int128 itype;
     itype retVal;
     for(int i = 0; i < size(); ++i){
-      retVal += std::labs((itype)FPWrap<long double>((long double)data[i]).intVal - FPWrap<T>((long double)rhs.data[i]).intVal);
+      retVal += std::labs((itype)FPWrap<__float128>((__float128)data[i]).intVal - FPWrap<T>((__float128)rhs.data[i]).intVal);
     }
     return retVal;
   }
@@ -624,9 +624,9 @@ struct FPTests {
   //https://fgiesen.wordpress.com/2013/06/02/modified-gram-schmidt-orthogonalization/
   //we'll follow along and choose the same (relative) epsilons, shoot for same results
   template<typename T>
-  static pair<string, long double>
+  static pair<string, __float128>
   DoHariGSBasic(){
-    long double score = 0.0;
+    __float128 score = 0.0;
     T e;
     sizeof(T) == 4 ? e = pow(10, -4) : sizeof(T) == 8 ? e = pow(10, -8) : e = pow(10, -10);
     //matrix = {a, b, c};
@@ -652,7 +652,7 @@ struct FPTests {
       info_stream << "r2: " << r2 << endl;
       info_stream << "r3: " << r3 << endl;
       info_stream << "w dot prods: " << o12 << ", " << o13 << ", " << o23 << endl;
-      info_stream << "score (bits): " << FPWrap<long double>(score) << endl;
+      info_stream << "score (bits): " << FPWrap<__float128>(score) << endl;
       info_stream << "score (dec) :" << score << endl;
     }
     return {__func__, score};
@@ -661,9 +661,9 @@ struct FPTests {
 
   //Hari Sundar's improved Gram-Schmidt
   template<typename T>
-  static pair<string, long double>
+  static pair<string, __float128>
   DoHariGSImproved(){
-    long double score = 0.0;
+    __float128 score = 0.0;
     T e;
     sizeof(T) == 4 ? e = pow(10, -4) : sizeof(T) == 8 ? e = pow(10, -8) : e = pow(10, -10);
     //matrix = {a, b, c};
@@ -697,10 +697,10 @@ struct FPTests {
   //rotation matrix for alignment, and then attempts to align them
   //the score is the distance between the two after the process
   template<typename T>
-  static pair<string, long double>
+  static pair<string, __float128>
   DoSkewSymCPRotationTest(const T min, const T max){
     info_stream << "entered " << __func__ << endl; 
-    long double score = 0.0;
+    __float128 score = 0.0;
     auto A = Vector<T>::getRandomVector(3, min, max).getUnitVector();
     info_stream << "A (unit) is: " << endl << A << endl;
     auto B = Vector<T>::getRandomVector(3, min, max).getUnitVector();
@@ -732,13 +732,13 @@ struct FPTests {
     return {__func__, score};
   }
   template<typename T, typename Fun>
-  static pair<string, long double>
+  static pair<string, __float128>
   DoOrthoPerturbTest(const int iters, const int dim,
 		     const size_t ulp_inc,
 		     Fun f,
 		     const typename Vector<T>::sort_t
 		     st = Vector<T>::def){
-    long double score = 0.0;
+    __float128 score = 0.0;
     std::vector<unsigned> orthoCount(dim, 0);
     size_t indexer = 0;
     Vector<T> a(dim, f);
@@ -798,9 +798,9 @@ struct FPTests {
   }
 
   template<typename T>
-  static pair<string, long double>
+  static pair<string, __float128>
   DoMatrixMultSanity(size_t dim, T min, T max){
-    long double score = 0.0;
+    __float128 score = 0.0;
     Vector<T> b = Vector<T>::getRandomVector(dim, min, max);
     auto c = Matrix<T>::Identity(dim) * b;
     info_stream << "Product is: " << c << endl;
@@ -811,9 +811,9 @@ struct FPTests {
   }
 
   template<typename T>
-  static pair<string, long double>
+  static pair<string, __float128>
   DoSimpleRotate90(){
-    long double score = 0.0;
+    __float128 score = 0.0;
     Vector<T> A = {1, 1, 1};
     Vector<T> expected = {-1, 1, 1};
     info_stream << "Rotating A: " << A << ", 1/4 PI radians " << endl;
@@ -830,7 +830,7 @@ struct FPTests {
   //rotates it again with a theta negative of the previous (unrotates) and
   //then checks their distance (
   template <typename T>
-  static pair<string, long double>
+  static pair<string, __float128>
   RotateAndUnrotate(T min = -1.0, T max = 1.0, T theta = M_PI){
     auto A = Vector<T>::getRandomVector(3, min, max);
     auto orig = A;
@@ -854,9 +854,9 @@ struct FPTests {
   //this this test creates a random 3d vector, copies it to orig,
   //then rotates n times pi/(n/2) radians, then compares (n * pi/(n/2) = 2pi).
   template <typename T>
-  static pair<string, long double>
+  static pair<string, __float128>
   RotateFullCircle(size_t n, T min = -1, T max = 1){
-    long double score = 0.0;
+    __float128 score = 0.0;
     Vector<T> A = Vector<T>::getRandomVector(3, min, max);
     auto orig = A;
     prec theta = 2 * M_PI / n;
@@ -1143,7 +1143,7 @@ DoTests(size_t iters,
 	T max,
 	typename Vector<T>::sort_t reduction_sort_type,
 	T theta,
-	std::map<string, long double> &scores){
+	std::map<string, __float128> &scores){
   size_t indexer = 0;
   scores.insert(FPTests::DoOrthoPerturbTest<T>(iters, highestDim,
 					       ulp_inc,
@@ -1190,7 +1190,7 @@ outputResults(size_t iters,
 	      T max,
 	      int reduction_sort_type,
 	      T theta,
-	      std::map<string, long double> &scores){
+	      std::map<string, __float128> &scores){
   cout << "*****************************************" << endl;
   cout << "Sub test with:" << endl;
   cout << "precision: " << typeid(T).name() << endl;
@@ -1202,18 +1202,18 @@ outputResults(size_t iters,
     cout << i.first << ":(bits)\t" << std::hex << FPWrap<T>(i.second) << endl;
     cout << "(decimal)\t" << i.second << endl;
   }
-  long double subtotal = 0;
-  for_each(scores.begin(), scores.end(), [&subtotal](std::pair<string, long double> p)
+  __float128 subtotal = 0;
+  for_each(scores.begin(), scores.end(), [&subtotal](std::pair<string, __float128> p)
 	   {subtotal += p.second;});
-  cout << "subtotal score (bits): " << std::hex << FPWrap<long double>(subtotal) << endl;
+  cout << "subtotal score (bits): " << std::hex << FPWrap<__float128>(subtotal) << endl;
   cout << "(decimal):\t" << subtotal << endl;
   cout << "*****************************************" << endl;
 }
 
 template<typename T>
 void
-tabulateSubtest(std::map<string, long double> &master,
-		std::map<string, long double> &sub){
+tabulateSubtest(std::map<string, __float128> &master,
+		std::map<string, __float128> &sub){
   for(auto i: sub){
     master[i.first] += i.second;
   }
@@ -1243,7 +1243,7 @@ main(int argc, char* argv[]){
   if(argc > 1 && std::string(argv[1]) == std::string("verbose")) info_stream.show();
   using namespace fpTestSuite;
   // The params to perturb are:
-  // precision := {float | double | long double}
+  // precision := {float | double | __float128}
   // innerIterations := 200
   size_t iters = 200;
   // highestDim := 16
@@ -1261,8 +1261,8 @@ main(int argc, char* argv[]){
   cout.precision(COUT_PREC); //set cout to print many decimal places
   info_stream.precision(COUT_PREC);
 
-  std::map<string, long double> masterScore;
-  std::map<string, long double> scores;
+  std::map<string, __float128> masterScore;
+  std::map<string, __float128> scores;
   for(int ipm = 0; ipm < 4; ++ipm){ //reduction sort pre sum
     for(int p = 0; p < 3; ++p){ //float, double, long double
       switch(p){
@@ -1282,19 +1282,19 @@ main(int argc, char* argv[]){
 	}
       case 2:
 	{
-	DoTests<long double>(iters, dim, ulp_inc, min, max, getSortT<long double>(ipm), theta, scores);
-	outputResults<long double>(iters, dim, ulp_inc, min, max, ipm, theta, scores);
-	tabulateSubtest<long double>(masterScore, scores);
+	DoTests<__float128>(iters, dim, ulp_inc, min, max, getSortT<__float128>(ipm), theta, scores);
+	outputResults<__float128>(iters, dim, ulp_inc, min, max, ipm, theta, scores);
+	tabulateSubtest<__float128>(masterScore, scores);
 	break;
 	}
       }
     }
   }
-  long double mScore = 0;
+  __float128 mScore = 0;
   std::for_each(masterScore.begin(),
 		masterScore.end(),
-		[&mScore](pair<string, long double> p){mScore += p.second;});
-  cout << "master score is (bits): " << std::hex << FPWrap<long double>(mScore)
+		[&mScore](pair<string, __float128> p){mScore += p.second;});
+  cout << "master score is (bits): " << std::hex << FPWrap<__float128>(mScore)
        << endl;
   cout << "(dec): " << std::dec << mScore << endl;
   if(mScore != 0) return 1;
