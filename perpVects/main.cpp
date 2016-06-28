@@ -80,7 +80,6 @@ outputResults(const QFPTest::testInput& ti, const score_t& scores){
   }
 }
 
-//typedef std::list<std::future<std::pair<int,int>>> future_collection_t;
 typedef std::list<std::future<QFPTest::resultType>> future_collection_t;
 typedef std::chrono::milliseconds const timeout_t;
 
@@ -112,7 +111,6 @@ main(int argc, char* argv[]){
   std::string NO_WATCHS;
   loadStringFromEnv(NO_WATCHS, "NO_WATCH", "true");
   bool doOne = TEST != "all";
-  std::cout << TEST << ":" << SORT << ":" << PRECISION << std::endl;
   if(TEST == "all"){
     if(SORT != "all" || PRECISION != "all"){ //all or one
     std::cerr << argv[0] << " must be ran with one or all tests selected." << std::endl;
@@ -169,14 +167,9 @@ main(int argc, char* argv[]){
 	auto plist = t.second->create();
 	while(DEGP - futures.size() < plist.size()) checkFutures(futures, timeout, scores);
 	for(auto pt : plist){
-	  //futures.push_back(std::move(std::async(&QFPTest::TestBase::operator(), pt, ip)));
 	  futures.push_back(std::move(std::async(std::launch::async, [pt,ip]{auto retVal =   (*pt)(ip);
 		  delete pt; return retVal;})));
-	  //futures.push_back(std::move(std::async([pt,ip]{return (QFPTest::resultType){{std::string("hi"), std::string("there")},{0.0,0.0}};})));
-	  // scores.insert((*pt)(ip));
-	  // scores.insert([pt,ip]{return (*pt)(ip);}());
 	}
-	//for(auto t : plist) delete t;
       }
       while(futures.size() > 0) checkFutures(futures, timeout, scores);
       outputResults(ip, scores);
