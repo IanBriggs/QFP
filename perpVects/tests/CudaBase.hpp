@@ -1,8 +1,8 @@
 #ifndef CUDABASE_HPP
 #define CUDABSE_HPP
 
-#incldue "testBase.h"
-#include "QFPHelpers.h"
+#include "../testBase.h"
+#include "../QFPHelpers.h"
 #include <string>
 #include <cuda.h>
 #include <thrust/device_vector.h>
@@ -27,7 +27,12 @@ protected:
 		    cudaResultType const *rt);
 public:
   QFPTest::resultType operator()(const QFPTest::testInput& ti){
-    
+    QFPTest::testInput* tid;
+    cudaMalloc(&tid, sizeof(QFPTest::testInput));
+    cudaMemcpy(tid, &ti);
+    cudaResultType res;
+    runKernel<T><<<1,1>>>(tid, &res);
+    cudaDeviceSynchronize();
   }
 }
 

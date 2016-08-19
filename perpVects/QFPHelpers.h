@@ -250,7 +250,7 @@ struct FPWrap{
   friend std::ostream& operator<<(std::ostream& os, FPWrap<U> const &w);
 };
 
-  extern std::mutex ostreamMutex;
+extern std::mutex ostreamMutex;
 
 template <typename U>
 std::ostream& operator<<(std::ostream& os, const FPWrap<U> &w){
@@ -277,6 +277,7 @@ getSortName(sort_t val);
 template<typename T>
 class Matrix;
 
+__HOST_DEV_SPEC__
 template <typename T>
 class Vector {
   std::vector<T> data;
