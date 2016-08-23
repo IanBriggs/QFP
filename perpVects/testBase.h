@@ -32,6 +32,9 @@ struct testInput {
   float max;
 };
 
+void
+outputResults(const QFPTest::resultType& scores);
+
 template<typename T>
 void pushWatchData();
 

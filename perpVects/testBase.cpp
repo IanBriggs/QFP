@@ -1,6 +1,7 @@
 //this is the base instantiation for tests
 
 #include "testBase.h"
+#include "QFPHelpers.h"
 #include "../gdb/inst/inst"
 
 #include <stack>
@@ -105,5 +106,14 @@ operator<<(std::ostream& os, const resultType& res){
        << r.second.first << "," << r.second.second << std::endl;
   }
   return os;
+}
+void
+outputResults(const QFPTest::resultType& scores){
+  for(const auto& i: scores){
+    std::cout << "HOST,SWITCHES,COMPILER," << i.first.second << ",us," << i.second.first
+              << "," << QFPHelpers::FPWrap<long double>(i.second.first) << ","
+              << i.second.second << "," << QFPHelpers::FPWrap<long double>(i.second.second) << ","
+              << i.first.first << "," << "FILENAME" << std::endl;
+  }
 }
 }

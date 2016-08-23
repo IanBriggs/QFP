@@ -46,16 +46,6 @@ loadIntFromEnv(int &dest, std::string var, int defVal){
   }
 }
 
-void
-outputResults(const QFPTest::resultType& scores){
-  for(const auto& i: scores){
-    std::cout << "HOST,SWITCHES,COMPILER," << i.first.second << ",us," << i.second.first
-              << "," << FPWrap<long double>(i.second.first) << ","
-              << i.second.second << "," << FPWrap<long double>(i.second.second) << ","
-              << i.first.first << "," << "FILENAME" << std::endl;
-  }
-}
-
 //typedef std::list<std::future<std::pair<int,int>>> future_collection_t;
 typedef std::list<std::future<QFPTest::resultType>> future_collection_t;
 typedef std::chrono::milliseconds const timeout_t;
