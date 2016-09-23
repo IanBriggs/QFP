@@ -5,6 +5,7 @@ OPT_FLAGS          ?= -O3 -funsafe-math-optimizations
 INTERNAL_OPT_FLAGS  = $(OPT_FLAGS) -fPIC -g
 
 CXX                 = g++
+#CXX                 = clang
 COMMON_FLAGS       += -std=c++14
 COMMON_FLAGS       += -g
 COMMON_FLAGS       += -Werror

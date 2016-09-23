@@ -1,10 +1,10 @@
 #include "helper.h"
 #include "groundtruth.h"
 #include "testBase.hpp"
-//#include "testbed.h"
 
 #include <cmath>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <list>
 #include <memory>
@@ -44,10 +44,8 @@ runTestbed(const std::string &testName, const std::vector<T> &inputs) {
 
 
 template<typename T>
-void runTest(std::string testName, uint divergentCount, uint maxTries,
-             RandType rType = RandType::UniformFP,
-             T randMin = std::numeric_limits<T>::min(),
-             T randMax = std::numeric_limits<T>::max()) {
+void runTest(const std::string &testName, uint divergentCount, uint maxTries,
+             RandType rType, T randMin, T randMax) {
   const std::function<T()> randGen = [randMin, randMax, rType]() {
     return generateRandomFloat<T>(randMin, randMax, RandomFloatType::Positive, rType);
   };
@@ -86,16 +84,27 @@ void runTest(std::string testName, uint divergentCount, uint maxTries,
             << std::endl;
 }
 
-void runAllPrecisions(const std::string testName, uint divergentCount,
-                      uint maxTries, double randMin, double randMax,
-                      RandType rType = RandType::UniformFP) {
+// Without the randMin and randMax.
+// Note: this is an overload rather than specifying default parameters because then I can
+//   make a function pointer to this version without the rand types.
+template<typename T>
+void runTest(const std::string &testName, uint divergentCount, uint maxTries, RandType rType) {
+  runTest<T>(testName, divergentCount, maxTries, rType,
+             std::numeric_limits<T>::min(),
+             std::numeric_limits<T>::max());
+}
+void runAllPrecisions(const std::string &testName, uint divergentCount,
+                      uint maxTries, RandType rType, double randMin, double randMax) {
   runTest<float>(testName, divergentCount, maxTries, rType, randMin, randMax);
   runTest<double>(testName, divergentCount, maxTries, rType, randMin, randMax);
   runTest<long double>(testName, divergentCount, maxTries, rType, randMin, randMax);
 }
 
-void runAllPrecisions(const std::string testName, uint divergentCount,
-                      uint maxTries, RandType rType = RandType::UniformFP) {
+// Without the randMin and randMax.
+// Note: this is an overload rather than specifying default parameters because then I can
+//   make a function pointer to this version without the rand types.
+void runAllPrecisions(const std::string &testName, uint divergentCount,
+                      uint maxTries, RandType rType) {
   runTest<float>(testName, divergentCount, maxTries, rType);
   runTest<double>(testName, divergentCount, maxTries, rType);
   runTest<long double>(testName, divergentCount, maxTries, rType);
@@ -145,8 +154,43 @@ struct ProgramArguments {
 };
 ProgramArguments parseArgs(int argCount, char* argList[]);
 
+using NoRangeRunFunc = void(const std::string&, uint, uint, RandType);
+template <typename T>
+using RangeRunFunc = void(const std::string&, uint, uint, RandType, T, T);
+
+// Convert a RangeRunFunc<T> to RangeRunFunc<double>
+template <typename T>
+std::function<RangeRunFunc<T>> rangeRunGen(RangeRunFunc<T>* func) {
+  return [func](
+        const std::string& a, uint b, uint c, RandType d, double e, double f) {
+    func(a, b, c, d, static_cast<T>(e), static_cast<T>(f));
+  };
+}
+
 int main(int argCount, char* argList[]) {
   auto parsedArgs = parseArgs(argCount, argList);
+
+  // Decide on which tests to run
+  std::function<NoRangeRunFunc> noRangeRunner;
+  std::function<RangeRunFunc<double>> rangeRunner;
+  switch(parsedArgs.type) {
+    case ProgramArguments::PrecisionType::Float:
+      noRangeRunner = static_cast<NoRangeRunFunc*>(runTest<float>);
+      rangeRunner = rangeRunGen<float>(&runTest<float>);
+      break;
+    case ProgramArguments::PrecisionType::Double:
+      noRangeRunner = static_cast<NoRangeRunFunc*>(runTest<double>);
+      rangeRunner = rangeRunGen(runTest<double>);
+      break;
+    case ProgramArguments::PrecisionType::LongDouble:
+      noRangeRunner = static_cast<NoRangeRunFunc*>(runTest<long double>);
+      rangeRunner = rangeRunGen(runTest<long double>);
+      break;
+    case ProgramArguments::PrecisionType::All:
+      noRangeRunner = static_cast<NoRangeRunFunc*>(runAllPrecisions);
+      rangeRunner = static_cast<RangeRunFunc<double>*>(runAllPrecisions);
+      break;
+  }
 
   // Set the console output to a file if specified
   std::unique_ptr<std::ofstream> out(nullptr);
@@ -156,53 +200,14 @@ int main(int argCount, char* argList[]) {
     swapper.reset(new BufSwap(std::cout, out->rdbuf()));
   }
 
-  
+  // Run the tests
   for (auto test : parsedArgs.tests) {
-    switch(parsedArgs.type) {
-      case ProgramArguments::PrecisionType::Float:
-        if (parsedArgs.hasRandRange) {
-          runTest<float>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
-                         parsedArgs.randType, parsedArgs.randMin, parsedArgs.randMax);
-        } else {
-          runTest<float>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
-                         parsedArgs.randType);
-        }
-        break;
-      case ProgramArguments::PrecisionType::Double:
-        if (parsedArgs.hasRandRange) {
-          runTest<double>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
-                          parsedArgs.randType, parsedArgs.randMin, parsedArgs.randMax);
-        } else {
-          runTest<double>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
-                          parsedArgs.randType);
-        }
-        break;
-      case ProgramArguments::PrecisionType::LongDouble:
-        if (parsedArgs.hasRandRange) {
-          runTest<long double>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
-                               parsedArgs.randType, parsedArgs.randMin, parsedArgs.randMax);
-        } else {
-          runTest<long double>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
-                               parsedArgs.randType);
-        }
-        break;
-      case ProgramArguments::PrecisionType::All:
-        if (parsedArgs.hasRandRange) {
-          runTest<float>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
-                         parsedArgs.randType, parsedArgs.randMin, parsedArgs.randMax);
-          runTest<double>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
-                          parsedArgs.randType, parsedArgs.randMin, parsedArgs.randMax);
-          runTest<long double>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
-                               parsedArgs.randType, parsedArgs.randMin, parsedArgs.randMax);
-        } else {
-          runTest<float>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
-                         parsedArgs.randType);
-          runTest<double>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
-                          parsedArgs.randType);
-          runTest<long double>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
-                               parsedArgs.randType);
-        }
-        break;
+    if (parsedArgs.hasRandRange) {
+      rangeRunner(test, parsedArgs.divergentCount, parsedArgs.maxTries,
+                  parsedArgs.randType, parsedArgs.randMin, parsedArgs.randMax);
+    } else {
+      noRangeRunner(test, parsedArgs.divergentCount, parsedArgs.maxTries,
+                    parsedArgs.randType);
     }
   }
 
