@@ -36,7 +36,7 @@ DoOPTKernel(const QFPTest::CuTestInput<T>* tiList, QFPTest::CudaResultElement* r
     T &p = a[r];
     backup = p;
     for(decltype(iters) i = 0; i < iters; ++i){
-      auto tmp = as_int(p);
+      auto tmp = as_uint(p);
       p = as_float(++tmp); //yeah, this isn't perfect
       //p = std::nextafter(p, std::numeric_limits<T>::max());
       auto watchPoint = FLT_MIN;
@@ -123,10 +123,10 @@ protected:
         }
         QFPHelpers::info_stream
           << "i:" << i
-          << ":a[" << r << "] = " << a[r] << ", " << QFPHelpers::as_int(a[r])
-          << " multiplier: " << b[r] << ", " << QFPHelpers::as_int(b[r])
+          << ":a[" << r << "] = " << a[r] << ", " << QFPHelpers::as_uint(a[r])
+          << " multiplier: " << b[r] << ", " << QFPHelpers::as_uint(b[r])
           << " perp: " << isOrth
-          << " dot prod: " << QFPHelpers::as_int(a ^ b)
+          << " dot prod: " << QFPHelpers::as_uint(a ^ b)
           << std::endl;
       }
       QFPHelpers::info_stream << "next dimension . . . " << std::endl;

@@ -44,9 +44,9 @@ outputResults(const QFPTest::ResultType& scores){
       << "HOST,SWITCHES,COMPILER,"
       << i.first.second << ",us,"
       << i.second.first << ","
-      << as_int(i.second.first) << ","
+      << as_uint(i.second.first) << ","
       << i.second.second << ","
-      << as_int(i.second.second) << ","
+      << as_uint(i.second.second) << ","
       << i.first.first << ","
       << "FILENAME"
       << std::endl;

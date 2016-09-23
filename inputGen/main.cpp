@@ -45,9 +45,11 @@ runTestbed(const std::string &testName, const std::vector<T> &inputs) {
 
 template<typename T>
 void runTest(std::string testName, uint divergentCount, uint maxTries,
-             RandType rType = RandType::UniformFP) {
-  const std::function<T()> randGen = [rType]() {
-    return generateRandomFloat<T>(RandomFloatType::Positive, rType);
+             RandType rType = RandType::UniformFP,
+             T randMin = std::numeric_limits<T>::min(),
+             T randMax = std::numeric_limits<T>::max()) {
+  const std::function<T()> randGen = [randMin, randMax, rType]() {
+    return generateRandomFloat<T>(randMin, randMax, RandomFloatType::Positive, rType);
   };
 
   std::cout << testName << "(" << typeid(T).name() << "): "
@@ -82,6 +84,14 @@ void runTest(std::string testName, uint divergentCount, uint maxTries,
             << "after " << mismatchIdx << " iterations:"
             << std::endl
             << std::endl;
+}
+
+void runAllPrecisions(const std::string testName, uint divergentCount,
+                      uint maxTries, double randMin, double randMax,
+                      RandType rType = RandType::UniformFP) {
+  runTest<float>(testName, divergentCount, maxTries, rType, randMin, randMax);
+  runTest<double>(testName, divergentCount, maxTries, rType, randMin, randMax);
+  runTest<long double>(testName, divergentCount, maxTries, rType, randMin, randMax);
 }
 
 void runAllPrecisions(const std::string testName, uint divergentCount,
@@ -124,6 +134,9 @@ struct ProgramArguments {
   };
   PrecisionType type = PrecisionType::Float;
   RandType randType = RandType::UniformFP;
+  bool hasRandRange = false;
+  double randMin = 0;
+  double randMax = 0;
   uint maxTries = 1000;
   bool outputToFile = false;
   std::string outFilename;
@@ -135,22 +148,6 @@ ProgramArguments parseArgs(int argCount, char* argList[]);
 int main(int argCount, char* argList[]) {
   auto parsedArgs = parseArgs(argCount, argList);
 
-  auto runner = runAllPrecisions;
-  switch(parsedArgs.type) {
-    case ProgramArguments::PrecisionType::Float:
-      runner = runTest<float>;
-      break;
-    case ProgramArguments::PrecisionType::Double:
-      runner = runTest<double>;
-      break;
-    case ProgramArguments::PrecisionType::LongDouble:
-      runner = runTest<long double>;
-      break;
-    case ProgramArguments::PrecisionType::All:
-      runner = runAllPrecisions;
-      break;
-  }
-
   // Set the console output to a file if specified
   std::unique_ptr<std::ofstream> out(nullptr);
   std::unique_ptr<BufSwap> swapper(nullptr);
@@ -159,9 +156,54 @@ int main(int argCount, char* argList[]) {
     swapper.reset(new BufSwap(std::cout, out->rdbuf()));
   }
 
+  
   for (auto test : parsedArgs.tests) {
-    runner(test, parsedArgs.divergentCount, parsedArgs.maxTries,
-           parsedArgs.randType);
+    switch(parsedArgs.type) {
+      case ProgramArguments::PrecisionType::Float:
+        if (parsedArgs.hasRandRange) {
+          runTest<float>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
+                         parsedArgs.randType, parsedArgs.randMin, parsedArgs.randMax);
+        } else {
+          runTest<float>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
+                         parsedArgs.randType);
+        }
+        break;
+      case ProgramArguments::PrecisionType::Double:
+        if (parsedArgs.hasRandRange) {
+          runTest<double>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
+                          parsedArgs.randType, parsedArgs.randMin, parsedArgs.randMax);
+        } else {
+          runTest<double>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
+                          parsedArgs.randType);
+        }
+        break;
+      case ProgramArguments::PrecisionType::LongDouble:
+        if (parsedArgs.hasRandRange) {
+          runTest<long double>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
+                               parsedArgs.randType, parsedArgs.randMin, parsedArgs.randMax);
+        } else {
+          runTest<long double>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
+                               parsedArgs.randType);
+        }
+        break;
+      case ProgramArguments::PrecisionType::All:
+        if (parsedArgs.hasRandRange) {
+          runTest<float>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
+                         parsedArgs.randType, parsedArgs.randMin, parsedArgs.randMax);
+          runTest<double>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
+                          parsedArgs.randType, parsedArgs.randMin, parsedArgs.randMax);
+          runTest<long double>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
+                               parsedArgs.randType, parsedArgs.randMin, parsedArgs.randMax);
+        } else {
+          runTest<float>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
+                         parsedArgs.randType);
+          runTest<double>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
+                          parsedArgs.randType);
+          runTest<long double>(test, parsedArgs.divergentCount, parsedArgs.maxTries,
+                               parsedArgs.randType);
+        }
+        break;
+    }
   }
 
   return 0;
@@ -173,7 +215,7 @@ ProgramArguments parseArgs(int argCount, char* argList[]) {
     "  inputGen [-h]\n"
     "  inputGen --list-tests\n"
     "  inputGen [-f|-d|-e|-a] [-m MAX_TRIES] [-i NUM_DIVERGENT_INPUTS] [-o FILENAME]\n"
-    "           [-r RAND_TYPE] (--test TEST_NAME ... | --all-tests)\n"
+    "           [-r RAND_TYPE] [-R RANGE] (--test TEST_NAME ... | --all-tests)\n"
     "\n"
     "Description:\n"
     "  Runs the particular tests under the optimization given in compilation.  The\n"
@@ -219,10 +261,14 @@ ProgramArguments parseArgs(int argCount, char* argList[]) {
     "\n"
     "  -r RAND_TYPE, --rand-type RAND_TYPE\n"
     "      The type of random number distribution to use.  Choices are:\n"
-    "      - fp: Uniform over the floating-point number space\n"
-    "      - real: Uniform over the real number line, then projected to\n"
-    "        floating-point space\n"
-    "      The default is \"fp\".\n"
+    "      - uniform-fp: Uniform over the floating-point number space\n"
+    "      - uniform-real: Uniform over the real number line, then projected\n"
+    "        to floating-point space\n"
+    "      The default is \"uniform-fp\".\n"
+    "\n"
+    "  -R RANGE, --rand-range RANGE\n"
+    "      Specify the range of the floating point random numbers, in the\n"
+    "      format of <num>:<num> where each <num> is a floating-point value.\n"
     "\n"
     ;
 
@@ -281,15 +327,21 @@ ProgramArguments parseArgs(int argCount, char* argList[]) {
       parsedArgs.tests.insert(parsedArgs.tests.end(), allTests.begin(), allTests.end());
     } else if (arg == "-r" || arg == "--rand-type") {
       auto& nextArg = args[++i];
-      if (nextArg == "fp") {
+      if (nextArg == "uniform-fp") {
         parsedArgs.randType = RandType::UniformFP;
-      } else if (nextArg == "real") {
+      } else if (nextArg == "uniform-real") {
         parsedArgs.randType = RandType::UniformReals;
       } else {
         std::cerr << "Error: unrecognized rand-type: " << nextArg << std::endl;
         std::cerr << "  Use the --help option for more information" << std::endl;
         exit(1);
       }
+    } else if (arg == "-R" || arg == "--rand-range") {
+      auto& nextArg = args[++i];
+      size_t location;
+      parsedArgs.randMin = std::stod(nextArg, &location);
+      parsedArgs.randMax = std::stod(nextArg.substr(location+1));
+      parsedArgs.hasRandRange = true;
     } else {
       std::cerr << "Error: unrecognized argument: " << arg << std::endl;
       std::cerr << "  Use the --help option for more information" << std::endl;

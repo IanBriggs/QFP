@@ -71,22 +71,54 @@ as_float(unsigned __int128 val) {
 }
 
 HOST_DEVICE
+inline float
+as_float(int32_t val) {
+  return *reinterpret_cast<float*>(&val);
+}
+
+HOST_DEVICE
+inline double
+as_float(int64_t val) {
+   return *reinterpret_cast<double*>(&val);
+}
+
+inline long double
+as_float(__int128 val) {
+  return *reinterpret_cast<long double*>(&val);
+}
+
+HOST_DEVICE
 inline uint32_t
-as_int(float val) {
+as_uint(float val) {
   return *reinterpret_cast<uint32_t*>(&val);
 }
 
 HOST_DEVICE
 inline uint64_t
-as_int(double val) {
+as_uint(double val) {
   return *reinterpret_cast<uint64_t*>(&val);
 }
 
 inline unsigned __int128
-as_int(long double val) {
+as_uint(long double val) {
   const unsigned __int128 zero = 0;
   const auto temp = *reinterpret_cast<unsigned __int128*>(&val);
   return temp & (~zero >> 48);
+}
+
+inline int32_t
+as_int(float val) {
+  return *reinterpret_cast<int32_t*>(&val);
+}
+
+inline int64_t
+as_int(double val) {
+  return *reinterpret_cast<int64_t*>(&val);
+}
+
+inline __int128
+as_int(long double val) {
+  return *reinterpret_cast<__int128*>(&val);
 }
 
 template<typename T>
